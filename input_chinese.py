@@ -25,19 +25,21 @@ class OLEDController:
             byte_array.append(byte)
         return bytes(byte_array)
 
-    def display_chinese_on_oled(self, text):
-        for char in text:
-            self.display_chinese(char)
+    def display_char(self, char, x, y):
+        # 清除原来的内容
+        #self.fb.fill(0)  # 清除帧缓冲区内容
 
-        self.oled.fill(0)  # 清空OLED显示器
-        for row in range(len(self.rect_list)):
-            for col in range(len(self.rect_list[0])):
-                if self.rect_list[row][col]:
-                    self.fb.pixel(col, row, 1)  # 在帧缓冲区中设置一个白色像素
+        try:
+            self.display_chinese(char, x, y)
+        except:
+            self.fb.text(char, x, y)
+
         self.oled.blit(self.fb, 0, 0)  # 将framebuf内容显示到OLED屏幕上
         self.oled.show()  # 更新显示
 
-    def display_chinese(self, char):
+    def display_chinese(self, char, x, y):
+        self.rect_list = [[] for _ in range(16)]  # 清空绘制列表
+
         get_gb2312 = gb2312.fontbyte.strs(char)
         hex_str = binascii.hexlify(get_gb2312).decode('utf-8')
         area = eval('0x' + hex_str[:2]) - 0xA0
@@ -57,8 +59,21 @@ class OLEDController:
                     flag = asc & self.KEYS[i]
                     row_list.append(flag)
 
+        for row in range(len(self.rect_list)):
+            for col in range(len(self.rect_list[0])):
+                if self.rect_list[row][col]:
+                    self.fb.pixel(col+x, row+y, 1)  # 在帧缓冲区中设置一个白色像素
+
+    def display_chinese_on_oled(self, text, x=0, y=0):
+        for index, char in enumerate(text):
+            self.display_char(char, x + index * 16, y)
+        #self.oled.show()
+
 # 创建OLED控制器实例
 oled_controller = OLEDController()
 
 # 调用示例
-# oled_controller.display_chinese_on_oled("你好世界！")
+#oled_controller.display_chinese_on_oled("red", 0, 0)
+
+
+
