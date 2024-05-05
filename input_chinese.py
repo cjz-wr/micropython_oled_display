@@ -5,9 +5,10 @@ from machine import Pin, I2C
 import ssd1306
 
 class OLEDController:
-    def __init__(self, scl_pin=22, sda_pin=21):
+    def __init__(self, scl_pin=22, sda_pin=21, font_size=2):
         self.scl_pin = scl_pin
         self.sda_pin = sda_pin
+        self.font_size = font_size  # 添加字体大小变量
         self.i2c = I2C(0, scl=Pin(self.scl_pin), sda=Pin(self.sda_pin))
         self.oled = ssd1306.SSD1306_I2C(128, 64, self.i2c)
         self.buf = bytearray(128 * 64 // 8)
@@ -16,29 +17,17 @@ class OLEDController:
         self.rect_list = [[] for _ in range(16)]
         self.font_file = "HZK16"
 
-    def hex_to_bytes(self, hex_string):
-        if len(hex_string) % 2 != 0:
-            raise ValueError("Hex string length must be even.")
-        byte_array = bytearray()
-        for i in range(0, len(hex_string), 2):
-            byte = int(hex_string[i:i+2], 16)
-            byte_array.append(byte)
-        return bytes(byte_array)
-
     def display_char(self, char, x, y):
-        # 清除原来的内容
-        #self.fb.fill(0)  # 清除帧缓冲区内容
-
         try:
             self.display_chinese(char, x, y)
         except:
             self.fb.text(char, x, y)
 
-        self.oled.blit(self.fb, 0, 0)  # 将framebuf内容显示到OLED屏幕上
-        self.oled.show()  # 更新显示
+        self.oled.blit(self.fb, 0, 0)
+        self.oled.show()
 
     def display_chinese(self, char, x, y):
-        self.rect_list = [[] for _ in range(16)]  # 清空绘制列表
+        self.rect_list = [[] for _ in range(16)]
 
         get_gb2312 = gb2312.fontbyte.strs(char)
         hex_str = binascii.hexlify(get_gb2312).decode('utf-8')
@@ -59,21 +48,21 @@ class OLEDController:
                     flag = asc & self.KEYS[i]
                     row_list.append(flag)
 
+        # 计算新的字体大小
+        new_font_size = self.font_size // 2
         for row in range(len(self.rect_list)):
             for col in range(len(self.rect_list[0])):
                 if self.rect_list[row][col]:
-                    self.fb.pixel(col+x, row+y, 1)  # 在帧缓冲区中设置一个白色像素
+                    self.fb.fill_rect(x + col * new_font_size, y + row * new_font_size, new_font_size, new_font_size, 1)
 
     def display_chinese_on_oled(self, text, x=0, y=0):
         for index, char in enumerate(text):
-            self.display_char(char, x + index * 16, y)
-        #self.oled.show()
+            self.display_char(char, x + index * self.font_size*8, y)
 
-# 创建OLED控制器实例
+
+# 创建 OLED 控制器实例
 oled_controller = OLEDController()
 
 # 调用示例
-#oled_controller.display_chinese_on_oled("red", 0, 0)
-
-
+#oled_controller.display_chinese_on_oled("你好世界word", 0, 0)
 
